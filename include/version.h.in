@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
+
+#ifndef _HEXEND_VERSION_H
+#define _HEXEND_VERSION_H
+
+#define hexend_VERSION_MAJOR @hexend_VERSION_MAJOR@
+#define hexend_VERSION_MINOR @hexend_VERSION_MINOR@
+
+#define VERSION() fprintf(stderr, "hexend-%d.%d\n", hexend_VERSION_MAJOR, hexend_VERSION_MINOR);
+
+#endif /* _HEXEND_VERSION_H */
