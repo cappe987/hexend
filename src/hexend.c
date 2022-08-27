@@ -10,12 +10,15 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <net/if.h>
-/*#include <arpa/inet.h>*/
+/*#include <netinet/in.h>*/
+#include <arpa/inet.h>
+#include <net/ethernet.h>
+#include <linux/if_ether.h>
 /*#include <netinet/ip.h>*/
 /*#include <netinet/udp.h>*/
 /*#include <netinet/ether.h>*/
-/*#include <linux/if_packet.h>*/
-/*#include <sys/ioctl.h>*/
+#include <linux/if_packet.h>
+#include <sys/ioctl.h>
 
 #include "version.h"
 
@@ -71,30 +74,73 @@ out:
 	return 0;
 }
 
+/* Get the index of the interface to send on */
+int get_interface_index(const char interface_name[IFNAMSIZ], int sockfd)
+{
+        struct ifreq if_idx;
+        memset(&if_idx, 0, sizeof(struct ifreq));
+        strncpy(if_idx.ifr_name, interface_name, IFNAMSIZ-1);
+        if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0)
+                perror("SIOCGIFINDEX");
+
+        return if_idx.ifr_ifindex;
+}
+
+int send_frame(char *iface, char *buffer, int length)
+{
+
+}
+
 int main(int argc, char **argv)
 {
-	struct ifreq if_idx;
-	struct ifreq if_mac;
+	/*struct ifreq if_idx;*/
+	/*struct ifreq if_mac;*/
+	struct sockaddr_ll sock_addr;
 	int err = 0;
 	int sockfd;
+	/*unsigned char buffer[] = {*/
+		/*0xff, 0xff, 0xff, 0xff, 0xff, 0xff,*/
+		/*0x00, 0x00, 0x00, 0x00, 0x00, 0x01,*/
+		/*0x08, 0x00, 0x00, 0x00, 0x00};*/
+	unsigned char buffer[] = {
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0x00, 0x00};
+	int len = 14;
+	int bytes = 0;
 
-	err = parse_args(argc, argv);
+
+	/*err = parse_args(argc, argv);*/
 
 
-	const char *opt = "eth0";
-	const int len = strnlen(opt, IFNAMSIZ);
+	const char opt[IFNAMSIZ] = "veth1";
+	const int length = strnlen(opt, IFNAMSIZ);
 
-	if (len == IFNAMSIZ) {
+	if (length == IFNAMSIZ) {
 		fprintf(stderr, "Too long iface name");
 		return 1;
 	}
 	/* Open RAW socket to send on */
-	if ((sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1) {
-		perror("socket");
-	}
+	sockfd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW);
+	/*sockfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));*/
+	perror("socket");
 
-	setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, opt, len);
 
-	write(sockfd, buffer, length);
+	sock_addr.sll_ifindex = get_interface_index(opt, sockfd);
+	/* Address length*/
+	/*sock_addr.sll_halen = ETH_ALEN;*/
+	/* Destination MAC */
+	/*memcpy(sock_addr.sll_addr, buffer, ETH_ALEN);*/
+
+	/*sock_addr.sll_protocol = 0x0800; */
+
+	/* Send packet */
+	bytes = sendto(sockfd, buffer, len, 0, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_ll));
+	if (bytes < 0)
+		printf("Send failed\n");
+	else
+		printf("Sent %d bytes\n", bytes);
+
 	close(sockfd);
+
 }
