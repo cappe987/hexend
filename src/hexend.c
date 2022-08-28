@@ -41,7 +41,11 @@ void usage(void)
 	fputs("hexend - Send raw hex packets\n"
 	      "\n"
 	      "USAGE:\n"
-	      "        hexend <iface> [hexfile] [OPTIONS]\n"
+	      "        hexend <iface> [HEXFILE] [OPTIONS]\n"
+	      "\n"
+	      "        HEXFILE can be either a name from the included hex\n"
+	      "        frames (prioritized) or a filepath. If left blank it\n"
+	      "        will read from stdin.\n"
 	      "\n"
 	      "OPTIONS:\n"
 	      "        -c, --count <NUM>\n"
@@ -56,8 +60,9 @@ void usage(void)
 	      "            Supress all output\n"
 	      "\n"
 	      "EXAMPLES:\n"
-	      "            hexend eth0 frame.hex\n"
-	      "            cat frame.hex | hexend eth0\n"
+	      "            hexend eth0 bcast\n"
+	      "            hexend eth0 my_frames/frame.hex\n"
+	      "            cat my_frames/frame.hex | hexend eth0\n"
 	      "            echo ffffffffffffaaaaaaaaaaaa0000 | hexend eth0\n"
 	      "\n"
 	      ,stderr);
@@ -92,6 +97,23 @@ int parse_hexbuffer(FILE *input, uint8_t *buffer)
 	}
 
 	return length;
+}
+
+FILE *open_hexfile(char *filename)
+{
+	FILE *input = NULL;
+	char path[256]; // FIXME: Better length handling
+
+	snprintf(path, 256, "/var/lib/hexend/%s.hex", filename);
+	input = fopen(path, "r");
+	if (input)
+		return input;
+
+	input = fopen(filename, "r");
+	if (input)
+		return input;
+
+	return NULL;
 }
 
 int parse_args(int argc, char **argv, struct hexend *hx)
@@ -159,7 +181,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 		input = stdin;
 
 	} else {
-		input = fopen(argv[optind], "r");
+		input = open_hexfile(argv[optind]);
 		if (!input) {
 			ERR("Invalid input file: %s\n", argv[optind]);
 			err = -EINVAL;
@@ -214,8 +236,10 @@ int send_frame(struct hexend *hx)
 
 	/* Open RAW socket to send on */
 	sockfd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW);
-	if (sockfd < 0)
+	if (sockfd < 0) {
+		perror("Error");
 		return errno;
+	}
 
 	sock_addr.sll_ifindex = get_iface_index(hx->iface, sockfd);
 	if (sock_addr.sll_ifindex < 0)
@@ -254,6 +278,8 @@ int main(int argc, char **argv)
 
 	if (err < 0)
 		return err;
+	if (err > 0)
+		return 0;
 
 	return send_frame(&hx);
 }
