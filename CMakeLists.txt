@@ -5,19 +5,17 @@ cmake_minimum_required(VERSION 3.12)
 
 project(hexend VERSION 1.0)
 
-set(CMAKE_C_FLAGS
-	"${CMAKE_C_FLAGS} -Wall -Wpedantic -Wextra"
-	)
-
+# ==== PROJECT SETUP ====
+set(HEXEND_FRAME_DIR "/var/lib/hexend")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wpedantic -Wextra")
 set(PROJECT_NAME_VERSION "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
 
-set(SRC_FILES
-	hexend.c
-	)
+set(SRC_FILES hexend.c)
 list(TRANSFORM SRC_FILES PREPEND "${PROJECT_SOURCE_DIR}/src/")
 
 configure_file(include/version.h.in include/version.h)
 
+# ==== BUILD ====
 add_executable(hexend ${SRC_FILES})
 
 target_include_directories(hexend PUBLIC
@@ -25,6 +23,17 @@ target_include_directories(hexend PUBLIC
 	${PROJECT_BINARY_DIR}/include
 	)
 
+add_custom_command(
+	TARGET hexend POST_BUILD
+	COMMAND
+	${CMAKE_COMMAND}
+	-E
+	copy_directory
+	${PROJECT_SOURCE_DIR}/frames
+	${PROJECT_BINARY_DIR}/frames
+	)
+
+# ==== INSTALL ====
 install(TARGETS hexend
         CONFIGURATIONS Debug
         RUNTIME DESTINATION bin)
@@ -32,6 +41,18 @@ install(TARGETS hexend
         CONFIGURATIONS Release
         RUNTIME DESTINATION bin)
 
+install(DIRECTORY ${PROJECT_BINARY_DIR}/frames/ DESTINATION ${HEXEND_FRAME_DIR})
+
+
+# ==== UNINSTALL ====
+add_custom_target(uninstall
+	COMMAND
+	xargs rm < install_manifest.txt
+	COMMAND
+	rmdir /var/lib/hexend
+	)
+
+# ==== RELEASE TAR FILE ====
 add_custom_target(tar
 	COMMAND 
 	mkdir "-p" "${PROJECT_NAME_VERSION}"
@@ -52,6 +73,7 @@ add_custom_target(tar
 	"${PROJECT_NAME_VERSION}/"
 	)
 
+# ==== CLEAN ====
 set_directory_properties(
 	PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
 	"${PROJECT_BINARY_DIR}/${PROJECT_NAME_VERSION}.tar.gz"
