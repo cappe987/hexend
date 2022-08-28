@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,13 +12,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <net/if.h>
-/*#include <netinet/in.h>*/
-#include <arpa/inet.h>
 #include <net/ethernet.h>
-#include <linux/if_ether.h>
-/*#include <netinet/ip.h>*/
-/*#include <netinet/udp.h>*/
-/*#include <netinet/ether.h>*/
 #include <linux/if_packet.h>
 #include <sys/ioctl.h>
 
@@ -69,11 +62,13 @@ void usage(void)
 }
 
 /* Returns length */
-int parse_hexbuffer(FILE *input, uint8_t *buffer)
+int parse_hex_file(FILE *input, uint8_t *buffer, int *length)
 {
-	char tmp[3] = {0}; /* Null terminated so we can use strtol */
+	char byte[3] = {0}; /* Null terminated so we can use strtol */
 	char ch;
-	int cnt = 0, length = 0;
+	int cnt = 0;
+
+	*length = 0;
 
 	while ((ch = getc(input))) {
 		if (ch == EOF)
@@ -81,12 +76,12 @@ int parse_hexbuffer(FILE *input, uint8_t *buffer)
 		if (!isxdigit(tolower(ch)))
 			continue;
 		
-		tmp[cnt] = ch;
+		byte[cnt] = ch;
 		cnt++;
 
 		if (cnt == 2) {
-			buffer[length] = strtol(tmp, NULL, 16);
-			length++;
+			buffer[*length] = strtol(byte, NULL, 16);
+			(*length)++;
 			cnt = 0;
 		}
 	}
@@ -96,7 +91,12 @@ int parse_hexbuffer(FILE *input, uint8_t *buffer)
 		return -EINVAL;
 	}
 
-	return length;
+	if (*length < ETH_HLEN) {
+		ERR("Input must be longer than 14 bytes\nMust contain Dest, Src, and EtherType\n");
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 FILE *open_hexfile(char *filename)
@@ -114,6 +114,41 @@ FILE *open_hexfile(char *filename)
 		return input;
 
 	return NULL;
+}
+
+int parse_arg_iface(int argc, char **argv, struct hexend *hx)
+{
+	/* Parse interface */
+	if (optind == argc) {
+		ERR("No interface provided\n");
+		return -EINVAL;
+	}
+
+	if (strlen(argv[optind]) > 15) {
+		ERR("Interface name too long\n");
+		return -EINVAL;
+	}
+
+	strncpy(hx->iface, argv[optind], IFNAMSIZ);
+	optind++;
+	return 0;
+}
+
+int parse_arg_input(int argc, char **argv, FILE **input)
+{
+	/* Parse filename */
+	if (optind == argc) {
+		*input = stdin;
+
+	} else {
+		*input = open_hexfile(argv[optind]);
+		if (!(*input)) {
+			ERR("Invalid input file: %s\n", argv[optind]);
+			return -EINVAL;
+		}
+	}
+	optind++;
+	return 0;
 }
 
 int parse_args(int argc, char **argv, struct hexend *hx)
@@ -134,6 +169,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 	hx->reps = 1;
 	hx->quiet = false;
 	hx->interval = 1;
+	hx->length = 0;
 
 	while ((ch = getopt_long(argc, argv, "vhqc:f:i:", long_options, NULL)) != -1) {
 		switch (ch) {
@@ -161,47 +197,17 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 		}
 	}
 
-	/* Parse interface */
-	if (optind == argc) {
-		ERR("No interface provided\n");
-		err = -EINVAL;
+	err = parse_arg_iface(argc, argv, hx);
+	if (err)
 		goto out;
-	}
 
-	if (strlen(argv[optind]) > 15) {
-		ERR("Interface name too long\n");
-		err = -EINVAL;
+	err = parse_arg_input(argc, argv, &input);
+	if (err)
 		goto out;
-	}
-	strncpy(hx->iface, argv[optind], IFNAMSIZ);
-	optind++;
 
-	/* Parse filename */
-	if (optind == argc) {
-		input = stdin;
-
-	} else {
-		input = open_hexfile(argv[optind]);
-		if (!input) {
-			ERR("Invalid input file: %s\n", argv[optind]);
-			err = -EINVAL;
-			goto out;
-		}
-	}
-	optind++;
-
-
-	/* Parse hex string */
-	hx->length = parse_hexbuffer(input, hx->buffer);
-	if (hx->length < 0) {
-		err = hx->length;
+	err = parse_hex_file(input, hx->buffer, &hx->length);
+	if (err)
 		goto out;
-	}
-	if (hx->length < ETH_HLEN) {
-		ERR("Input must be longer than 14 bytes\nMust contain Dest, Src, and EtherType\n");
-		err = -EINVAL;
-		goto out;
-	}
 
 out:
 	if (input && input != stdin) {
