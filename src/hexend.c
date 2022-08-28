@@ -25,6 +25,16 @@
 
 #include "version.h"
 
+#define ERR(str, ...) fprintf(stderr, "Error: "str, ##__VA_ARGS__)
+
+struct hexend {
+	char iface[IFNAMSIZ];
+	uint8_t buffer[ETH_FRAME_LEN];
+	bool quiet;
+	int length;
+	int reps;
+	float interval;
+};
 
 void usage(void)
 {
@@ -53,7 +63,7 @@ void usage(void)
 	      ,stderr);
 }
 
-/* Return length? */
+/* Returns length */
 int parse_hexbuffer(FILE *input, uint8_t *buffer)
 {
 	char tmp[3] = {0}; /* Null terminated so we can use strtol */
@@ -76,13 +86,15 @@ int parse_hexbuffer(FILE *input, uint8_t *buffer)
 		}
 	}
 	/* Can't end on half a byte */
-	if (cnt == 1)
+	if (cnt == 1) {
+		ERR("Can't end on half a byte\n");
 		return -EINVAL;
+	}
 
 	return length;
 }
 
-int parse_args(int argc, char **argv, char iface[IFNAMSIZ], uint8_t buffer[ETH_FRAME_LEN], int *length, int *reps)
+int parse_args(int argc, char **argv, struct hexend *hx)
 {
 	FILE *input = NULL;
 	int err = 0;
@@ -97,46 +109,49 @@ int parse_args(int argc, char **argv, char iface[IFNAMSIZ], uint8_t buffer[ETH_F
 		{ NULL,         0,           NULL,             0  }
 	};
 
-	*reps = 1;
+	hx->reps = 1;
+	hx->quiet = false;
+	hx->interval = 1;
 
-	while ((ch = getopt_long(argc, argv, "vhc:f:", long_options, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "vhqc:f:i:", long_options, NULL)) != -1) {
 		switch (ch) {
 		case 'v':
 			VERSION();
-			goto out;
+			return 1;
 		case 'h':
 			usage();
-			goto out;
-		case 'c':
-			// TODO: Replace with strol
-			*reps = atoi(optarg);
-			break;
+			return 1;
 		case 'q':
 			 /*Quiet/silent mode */
-			fprintf(stderr, "Option -q currently not supported\n");
+			hx->quiet = true;
+			break;
+		case 'c':
+			// TODO: Replace with strol
+			hx->reps = atoi(optarg);
 			break;
 		case 'i':
 			 /*Sending interval. Float. */
-			fprintf(stderr, "Option -i currently not supported\n");
+			hx->interval = atof(optarg);
 			break;
 		case '?':
+			err = -EINVAL;
 			goto out;
 		}
 	}
 
 	/* Parse interface */
 	if (optind == argc) {
-		fprintf(stderr, "No interface provided\n");
+		ERR("No interface provided\n");
 		err = -EINVAL;
 		goto out;
 	}
 
 	if (strlen(argv[optind]) > 15) {
-		fprintf(stderr, "Interface name too long\n");
+		ERR("Interface name too long\n");
 		err = -EINVAL;
 		goto out;
 	}
-	strncpy(iface, argv[optind], IFNAMSIZ);
+	strncpy(hx->iface, argv[optind], IFNAMSIZ);
 	optind++;
 
 	/* Parse filename */
@@ -145,23 +160,23 @@ int parse_args(int argc, char **argv, char iface[IFNAMSIZ], uint8_t buffer[ETH_F
 
 	} else {
 		input = fopen(argv[optind], "r");
+		if (!input) {
+			ERR("Invalid input file: %s\n", argv[optind]);
+			err = -EINVAL;
+			goto out;
+		}
 	}
 	optind++;
 
-	if (!input) {
-		fprintf(stderr, "Invalid input file\n");
-		err = -EINVAL;
-		goto out;
-	}
 
 	/* Parse hex string */
-	*length = parse_hexbuffer(input, buffer);
-	if (*length < 0) {
-		err = *length;
+	hx->length = parse_hexbuffer(input, hx->buffer);
+	if (hx->length < 0) {
+		err = hx->length;
 		goto out;
 	}
-	if (*length < 14) {
-		fprintf(stderr, "Input must be longer than 14 bytes\nMust contain Dest, Src, and EtherType\n");
+	if (hx->length < ETH_HLEN) {
+		ERR("Input must be longer than 14 bytes\nMust contain Dest, Src, and EtherType\n");
 		err = -EINVAL;
 		goto out;
 	}
@@ -182,44 +197,48 @@ int get_iface_index(char iface[IFNAMSIZ], int sockfd)
         strncpy(if_idx.ifr_name, iface, IFNAMSIZ - 1);
 
         if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
-		fprintf(stderr, "No such device: %s\n", iface);
+		ERR("No such device: %s\n", iface);
 		return -1;
 	}
 
         return if_idx.ifr_ifindex;
 }
 
-int send_frame(char iface[IFNAMSIZ], uint8_t buffer[ETH_FRAME_LEN], int length, int reps)
+int send_frame(struct hexend *hx)
 {
 	struct sockaddr_ll sock_addr;
 	bool dots = false;
-	int sockfd;
+	int sockfd, reps;
+
+	reps = hx->reps;
 
 	/* Open RAW socket to send on */
 	sockfd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW);
 	if (sockfd < 0)
 		return errno;
 
-	sock_addr.sll_ifindex = get_iface_index(iface, sockfd);
+	sock_addr.sll_ifindex = get_iface_index(hx->iface, sockfd);
 	if (sock_addr.sll_ifindex < 0)
 		return -EINVAL;
 
 	if (reps > 1)
 		dots = true;
 
-	printf("Sending %d bytes\n", length); 
+	if (!hx->quiet)
+		printf("Sending %d bytes\n", hx->length); 
+
 	/* Send packet */
 	while (reps > 0) {
-		sendto(sockfd, buffer, length, 0, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_ll));
+		sendto(sockfd, hx->buffer, hx->length, 0, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_ll));
 		reps--;
-		if (dots) {
+		if (dots && !hx->quiet) {
 			printf(".");
 			fflush(stdout);
 		}
-		if (reps > 0)
-			usleep(1000000);
+		if (reps > 0 && hx->interval > 0)
+			usleep(1000000 * hx->interval);
 	}
-	if (dots)
+	if (dots && !hx->quiet)
 		printf("\n");
 
 	close(sockfd);
@@ -228,14 +247,13 @@ int send_frame(char iface[IFNAMSIZ], uint8_t buffer[ETH_FRAME_LEN], int length, 
 
 int main(int argc, char **argv)
 {
-	uint8_t buffer[ETH_FRAME_LEN];
-	char iface[IFNAMSIZ];
-	int length, reps, err = 0;
+	struct hexend hx;
+	int err = 0;
 
-	err = parse_args(argc, argv, iface, buffer, &length, &reps);
+	err = parse_args(argc, argv, &hx);
 
-	if (err)
+	if (err < 0)
 		return err;
 
-	return send_frame(iface, buffer, length, reps);
+	return send_frame(&hx);
 }
