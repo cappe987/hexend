@@ -7,7 +7,8 @@ project(hexend VERSION 1.0)
 
 # ==== PROJECT SETUP ====
 set(HEXEND_FRAME_DIR "/var/lib/hexend")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wpedantic -Wextra")
+set(CMAKE_C_FLAGS
+	"${CMAKE_C_FLAGS} -Wall -Wpedantic -Wextra -Wno-gnu-zero-variadic-macro-arguments")
 set(PROJECT_NAME_VERSION "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
 
 set(SRC_FILES hexend.c)
