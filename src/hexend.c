@@ -249,17 +249,17 @@ out:
 /* Get the index of the interface to send on */
 int get_iface_index(char iface[IFNAMSIZ], int sockfd)
 {
-        struct ifreq if_idx;
+	struct ifreq if_idx;
 
-        memset(&if_idx, 0, sizeof(struct ifreq));
-        strncpy(if_idx.ifr_name, iface, IFNAMSIZ);
+	memset(&if_idx, 0, sizeof(struct ifreq));
+	strncpy(if_idx.ifr_name, iface, IFNAMSIZ);
 
-        if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
+	if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
 		ERR("No such device: %s\n", iface);
 		return -1;
 	}
 
-        return if_idx.ifr_ifindex;
+	return if_idx.ifr_ifindex;
 }
 
 int send_frame(struct hexend *hx)
