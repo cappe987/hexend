@@ -24,16 +24,6 @@ target_include_directories(hexend PUBLIC
 	${PROJECT_BINARY_DIR}/include
 	)
 
-add_custom_command(
-	TARGET hexend POST_BUILD
-	COMMAND
-	${CMAKE_COMMAND}
-	-E
-	copy_directory
-	${PROJECT_SOURCE_DIR}/frames
-	${PROJECT_BINARY_DIR}/frames
-	)
-
 # ==== INSTALL ====
 install(TARGETS hexend
         CONFIGURATIONS Debug
@@ -42,15 +32,11 @@ install(TARGETS hexend
         CONFIGURATIONS Release
         RUNTIME DESTINATION bin)
 
-install(DIRECTORY ${PROJECT_BINARY_DIR}/frames/ DESTINATION ${HEXEND_FRAME_DIR})
-
 
 # ==== UNINSTALL ====
 add_custom_target(uninstall
 	COMMAND
 	xargs rm < install_manifest.txt
-	COMMAND
-	rmdir /var/lib/hexend
 	)
 
 # ==== RELEASE TAR FILE ====
