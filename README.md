@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
 -->
 
 # Hexend - Send raw hex frames
-> /hɛk-sɛnd/
+> /hɛksɛnd/ (pronunciation)
 
 For when you want to manually craft frames, or to copy the hexdump from
 Tcpdump/Wireshark and repeat or modify the frame afterwards.
