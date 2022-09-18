@@ -31,58 +31,6 @@ struct hexend {
 	float interval;
 };
 
-struct builtin_frame {
-	char name[20];
-	uint8_t buffer[ETH_FRAME_LEN];
-	int length;
-};
-
-struct builtin_frame builtins[] = {
-	{
-	.name = "bcast",
-	.length = 14,
-	.buffer =
-		{
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
-		0x00, 0x00
-		}
-	},
-	{
-	.name = "vlan1",
-	.length = 16,
-	.buffer =
-		{
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
-		0x81, 0x00, 0x00, 0x01
-		}
-	},
-};
-
-const int builtins_length = sizeof(builtins)/sizeof(struct builtin_frame);
-
-void show_buffer(uint8_t buffer[ETH_FRAME_LEN], int length)
-{
-	int i = 0;
-
-	while (i < length) {
-		printf("%02x", buffer[i]);;
-		i++;
-		if (i < length) {
-			printf("%02x", buffer[i]);;
-			i++;
-		}
-
-		if (i % 16 == 0)
-			printf("\n");
-		else
-			printf(" ");
-
-	}
-	if (i % 16 != 0)
-		printf("\n");
-}
 
 void usage(void)
 {
@@ -117,7 +65,28 @@ void usage(void)
 	      ,stderr);
 }
 
-/* Returns length */
+void show_buffer(uint8_t buffer[ETH_FRAME_LEN], int length)
+{
+	int i = 0;
+
+	while (i < length) {
+		printf("%02x", buffer[i]);;
+		i++;
+		if (i < length) {
+			printf("%02x", buffer[i]);;
+			i++;
+		}
+
+		if (i % 16 == 0)
+			printf("\n");
+		else
+			printf(" ");
+
+	}
+	if (i % 16 != 0)
+		printf("\n");
+}
+
 int parse_hex_file(FILE *input, uint8_t *buffer, int *length, bool quiet)
 {
 	char byte[3] = {0}; /* Null terminated so we can use strtol */
@@ -158,93 +127,6 @@ int parse_hex_file(FILE *input, uint8_t *buffer, int *length, bool quiet)
 	return 0;
 }
 
-void show_frames()
-{
-	uint8_t buffer[ETH_FRAME_LEN];
-	struct dirent *dir;
-	int i, err, length;
-	char dir_path[1024]; /* FIXME: improve length handling */
-	char path[4096];
-	FILE *input;
-	DIR *d;
-
-	for (i = 0; i < builtins_length; i++) {
-		printf("Name: %s\n", builtins[i].name);
-		show_buffer(builtins[i].buffer, builtins[i].length);
-		printf("\n");
-	}
-	snprintf(dir_path, 1024, "%s/.hexend/", getenv("HOME"));
-	d = opendir(dir_path);
-	if (d) {
-		while ((dir = readdir(d)) != NULL) {
-			if (strcmp(".", dir->d_name) == 0)
-				continue;
-			if (strcmp("..", dir->d_name) == 0)
-				continue;
-			snprintf(path, 4096, "%s%s", dir_path, dir->d_name);
-			input = fopen(path, "r");
-			if (!input)
-				continue;
-			err = parse_hex_file(input, buffer, &length, true);
-			if (err)
-				continue;
-			fclose(input);
-			/* Trim .hex extension */
-			dir->d_name[strlen(dir->d_name)-4] = '\0';
-			printf("Name: %s\n", dir->d_name);
-			show_buffer(buffer, length);
-			printf("\n");
-		}
-		closedir(d);
-	}
-}
-
-bool find_builtin_frame(struct hexend *hx, char *name)
-{
-	char path[256];
-	FILE *input;
-	int i, err;
-
-	for (i = 0; i < builtins_length; i++) {
-		if (strcmp(name, builtins[i].name) == 0) {
-			memcpy(hx->buffer, builtins[i].buffer, ETH_FRAME_LEN);
-			hx->length = builtins[i].length;
-			return true;
-		}
-	}
-
-	/* If contains / then do not try to interpret as filename */
-	if (!strstr(name, "/")) {
-		snprintf(path, 256, "%s/.hexend/%s.hex", getenv("HOME"), name);
-		input = fopen(path, "r");
-		if (input) {
-			err = parse_hex_file(input, hx->buffer, &hx->length, false);
-			fclose(input);
-			if (err) {
-				ERR("Invalid hexend file: %s/.hexend/%s.hex\n", getenv("HOME"), name);
-				return false;
-			} else {
-				return true;
-			}
-		}
-	}
-	
-	input = fopen(name, "r");
-	if (input) {
-		err = parse_hex_file(input, hx->buffer, &hx->length, false);
-		fclose(input);
-		if (err) {
-			ERR("Invalid hexend file: %s\n", name);
-			return false;
-		} else {
-			return true;
-		}
-	} 
-
-	ERR("Invalid name\n");
-	return false;
-}
-
 int parse_arg_iface(int argc, char **argv, struct hexend *hx)
 {
 	/* Parse interface */
@@ -265,6 +147,7 @@ int parse_arg_iface(int argc, char **argv, struct hexend *hx)
 
 int parse_args(int argc, char **argv, struct hexend *hx)
 {
+	FILE *input;
 	int err = 0;
 	char ch;
 
@@ -315,27 +198,27 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 			hx->interval = atof(optarg);
 			break;
 		case '?':
-			err = -EINVAL;
-			goto out;
+			return -EINVAL;
 		}
 	}
 
 	err = parse_arg_iface(argc, argv, hx);
 	if (err)
-		goto out;
+		return err;
 
 	if (optind < argc) {
-		if (!find_builtin_frame(hx, argv[optind]))
-			err = -ENOENT;
-		goto out;
+		input = fopen(argv[optind], "r");
+		if (!input) {
+			return -ENOENT;
+		}
 	} else {
-		err = parse_hex_file(stdin, hx->buffer, &hx->length, false);
-		if (err)
-			ERR("Invalid input\n");
+		input = stdin;
 	}
+	err = parse_hex_file(input, hx->buffer, &hx->length, false);
+	if (err)
+		ERR("Invalid input\n");
 
-out:
-	return err;
+	return 0;
 }
 
 /* Get the index of the interface to send on */
@@ -405,20 +288,13 @@ int main(int argc, char **argv)
 	int err = 0;
 
 	if (argc <= 1)
-		return -EINVAL;
+		usage();
 
-	if (strcmp(argv[1], "show") == 0) {
-		show_frames();
+	err = parse_args(argc, argv, &hx);
+	if (err < 0)
+		return -err;
+	if (err > 0)
 		return 0;
-	} else if (strcmp(argv[1], "tx") == 0) {
-		optind++;
-		err = parse_args(argc, argv, &hx);
-		if (err < 0)
-			return err;
-		if (err > 0)
-			return 0;
 
-		return send_frame(&hx);
-	}
-	return 0;
+	return send_frame(&hx);
 }
