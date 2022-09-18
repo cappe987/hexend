@@ -12,7 +12,7 @@ Tcpdump/Wireshark and repeat or modify the frame afterwards.
 ```
 hexend <iface> [FILE] [OPTIONS]
 ```
-Any non-hex characters in input are ignored.
+File may only contain hexadecimal characters and whitespace.
 
 # Installation
 ```

@@ -39,7 +39,7 @@ void usage(void)
 	      "USAGE:\n"
 	      "        hexend <iface> [FILE] [OPTIONS]\n"
 	      "\n"
-	      "        Any non-hex characters in input are ignored.\n"
+	      "        File may only contain hexadecimal characters and whitespace.\n"
 	      "\n"
 	      "OPTIONS:\n"
 	      "        -c, --count <NUM>\n"
@@ -97,9 +97,12 @@ int parse_hex_file(FILE *input, uint8_t *buffer, int *length, bool quiet)
 	while ((ch = getc(input))) {
 		if (ch == EOF)
 			break;
-		/* FIXME: Only skip whitespace, else fail */
-		if (!isxdigit(tolower(ch)))
+		if (isspace(ch))
 			continue;
+		if (!isxdigit(tolower(ch))) {
+			ERR("Invalid character '%c' (ascii: %d) in input\n", ch, ch);
+			return -EINVAL;
+		}
 		
 		byte[cnt] = ch;
 		cnt++;
@@ -216,6 +219,9 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 	err = parse_hex_file(input, hx->buffer, &hx->length, false);
 	if (err)
 		ERR("Invalid input\n");
+
+	if (input != stdin)
+		fclose(input);
 
 	return 0;
 }
