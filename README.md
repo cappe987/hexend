@@ -10,11 +10,9 @@ For when you want to manually craft frames, or to copy the hexdump from
 Tcpdump/Wireshark and repeat or modify the frame afterwards.
 
 ```
-hexend <iface> [HEXFILE] [OPTIONS]
+hexend <iface> [FILE] [OPTIONS]
 ```
-HEXFILE can be either a name from the included hex frames (prioritized) or a
-filepath. If left blank it will read from stdin. Any non-hex characters in
-input are ignored.
+Any non-hex characters in input are ignored.
 
 # Installation
 ```

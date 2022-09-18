@@ -37,12 +37,9 @@ void usage(void)
 	fputs("hexend - Send raw hex packets\n"
 	      "\n"
 	      "USAGE:\n"
-	      "        hexend <iface> [HEXFILE] [OPTIONS]\n"
+	      "        hexend <iface> [FILE] [OPTIONS]\n"
 	      "\n"
-	      "        HEXFILE can be either a name from the included hex\n"
-	      "        frames (prioritized) or a filepath. If left blank it\n"
-	      "        will read from stdin. Any non-hex characters in input\n"
-	      "        are ignored.\n"
+	      "        Any non-hex characters in input are ignored.\n"
 	      "\n"
 	      "OPTIONS:\n"
 	      "        -c, --count <NUM>\n"
@@ -51,7 +48,9 @@ void usage(void)
 	      "            Display this help text\n"
 	      "        -i, --interval <NUM>\n"
 	      "            Repeat at NUM second(s) interval (supports fractions)\n"
-	      "        -v, --version\n"
+	      "        -v, --verbose\n"
+	      "            Display the frame you are sending\n"
+	      "        -V, --version\n"
 	      "            Display hexend version\n"
 	      "        -q, --quiet \n"
 	      "            Suppress all output\n"
@@ -167,7 +166,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 	hx->interval = 1;
 	hx->length = 0;
 
-	while ((ch = getopt_long(argc, argv, "Vhvqc:f:i:", long_options, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "Vhvqc:i:", long_options, NULL)) != -1) {
 		switch (ch) {
 		case 'V':
 			VERSION();
