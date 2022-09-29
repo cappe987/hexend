@@ -40,7 +40,7 @@ add_custom_target(uninstall
 	)
 
 # ==== RELEASE TAR FILE ====
-add_custom_target(tar
+add_custom_target(dist
 	COMMAND 
 	mkdir "-p" "${PROJECT_NAME_VERSION}"
 	COMMAND
