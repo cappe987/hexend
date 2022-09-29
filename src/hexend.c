@@ -34,7 +34,7 @@ struct hexend {
 
 void usage(void)
 {
-	fputs("hexend - Send raw hex packets\n"
+	fputs("hexend - Send raw hex frames\n"
 	      "\n"
 	      "USAGE:\n"
 	      "        hexend <iface> [FILE] [OPTIONS]\n"
@@ -270,7 +270,7 @@ int send_frame(struct hexend *hx)
 	if (hx->verbose)
 		show_buffer(hx->buffer, hx->length);
 
-	/* Send packet */
+	/* Send frames */
 	while (reps > 0) {
 		sendto(sockfd, hx->buffer, hx->length, 0, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_ll));
 		reps--;
