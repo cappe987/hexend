@@ -260,7 +260,7 @@ int send_frame(struct hexend *hx)
 
 	sock_addr.sll_ifindex = get_iface_index(hx->iface, sockfd);
 	if (sock_addr.sll_ifindex < 0)
-		return -EINVAL;
+		return EINVAL;
 
 	if (reps > 1)
 		dots = true;
