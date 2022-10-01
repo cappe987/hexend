@@ -1,0 +1,90 @@
+.\" SPDX-License-Identifier: GPL-2.0-only
+.\" SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
+.Dd $Mdocdate: October 1 2022 $
+.Dt HEXEND 1
+.Os
+.Sh NAME
+.Nm hexend
+.Nd send raw hex frames
+.Sh SYNOPSIS
+.Nm
+.Op Fl ciqv
+.Ar iface
+.Op Ar file
+.Nm
+.Op Fl hV
+.Sh DESCRIPTION
+The
+.Nm
+utility sends a frame from the file
+.Ar file
+to the interface
+.Ar iface .
+This allows you to manually craft frames, or to copy the hexdump from tools like
+.Nm tcpdump
+and
+.Nm wireshark
+and repeat or modify the frame afterwards.
+The frame which is specified by the argument
+.Ar file
+may only contain hexadecimal characters and whitespace.
+If no
+.Ar file
+is specified, input is read from the standard input.
+.Nm
+also has a builtin frame called bcast.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl c Ar num , Fl \-count Ns = Ns Ar num
+Repeat the operation
+.Ar num
+times.
+.It Fl h , Fl \-help
+Display help text.
+.It Fl i Ar num , Fl \-interval Ns = Ns Ar num
+Repeat at
+.Ar num
+second intervals (supports fractions).
+.It Fl q , Fl \-quiet
+Suppress all output.
+.It Fl v , Fl \-verbose
+Display the frame being sent.
+.It Fl V , Fl \-version
+Display version information.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Send a frame from
+.Pa my_frames/frame.hex
+to
+.Ar eth0 :
+.Pp
+.Dl $ hexend eth0 my_frames/frame.hex
+.Pp
+Send the builtin frame bcast, repeat 10 times and suppress output:
+.Pp
+.Dl $ hexend -c 10 -q eth0 bcast
+.Pp
+Read the contents of
+.Pa my_frames/frame.hex
+via standard input
+.Nm ,
+repeat 5 times with a 0.1 second interval:
+.Pp
+.Dl $ hexend -c 5 -i 0.1 eth0 < my_frames/frames.hex
+.Pp
+Pipe raw string to input, repeat 1000 times with no interval:
+.Pp
+.Dl $ echo ffffffffffffaaaaaaaaaaaa0000 | hexend -c 1000 -i 0 eth0
+.Sh SEE ALSO
+.Xr hexdump 1 ,
+.Xr tcpdump 1
+.Sh AUTHORS
+.An -nosplit
+.Nm
+was written by
+.An Casper Andersson Aq Mt casper.casan@gmail.com
+and this manual was written by
+.An Thomas Voss Aq Mt mail@thomasvoss.com .
