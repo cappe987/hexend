@@ -29,9 +29,9 @@ Send a frame from file to `eth0`
 hexend eth0 my_frames/frame.hex
 ```
 
-Send the built-in frame `bcast`, repeat 10 times and suppress output
+Send a frame from file, repeat 10 times and suppress output
 ```
-hexend eth0 bcast -c 10 -q
+hexend eth0 my_frames/frame.hex -c 10 -q
 ```
 
 Pipe file contents to input, repeat 5 times with 0.1 second interval
