@@ -254,7 +254,7 @@ int send_frame(struct hexend *hx)
 	/* Open RAW socket to send on */
 	sockfd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW);
 	if (sockfd < 0) {
-		perror(strerror(errno));
+		perror("Error");
 		return errno;
 	}
 
