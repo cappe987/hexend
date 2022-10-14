@@ -16,10 +16,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Configure
         run: |
-          mkdir Build
-          cd Build
+          mkdir build
+          cd build
           cmake -DCMAKE_BUILD_TYPE=RELEASE ..
       - name: Build
         run: |
-          cd Build
+          cd build
           make
