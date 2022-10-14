@@ -137,7 +137,7 @@ int parse_arg_iface(int argc, char **argv, struct hexend *hx)
 		return -EINVAL;
 	}
 
-	if (strlen(argv[optind]) > 15) {
+	if (strlen(argv[optind]) > IFNAMSIZ - 1) {
 		ERR("Interface name too long\n");
 		return -EINVAL;
 	}
@@ -254,7 +254,7 @@ int send_frame(struct hexend *hx)
 	/* Open RAW socket to send on */
 	sockfd = socket(PF_PACKET, SOCK_RAW, IPPROTO_RAW);
 	if (sockfd < 0) {
-		perror("Error");
+		perror(strerror(errno));
 		return errno;
 	}
 
