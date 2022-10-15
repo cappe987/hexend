@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Build x86
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,6 +19,23 @@ jobs:
           mkdir build
           cd build
           cmake -DCMAKE_BUILD_TYPE=RELEASE ..
+      - name: Build
+        run: |
+          cd build
+          make
+  build-aarch64:
+    name: Build aarch64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Installing dependencies
+        run: |
+          sudo apt install gcc-aarch64-linux-gnu
+      - name: Configure
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_C_COMPILTER=/usr/bin/aarch64-linux-gnu-gcc -DCMAKE_BUILD_TYPE=RELEASE ..
       - name: Build
         run: |
           cd build
