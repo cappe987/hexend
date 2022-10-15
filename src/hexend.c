@@ -89,7 +89,7 @@ void show_buffer(uint8_t buffer[ETH_FRAME_LEN], int length)
 int parse_hex_file(FILE *input, uint8_t *buffer, int *length, bool quiet)
 {
 	char byte[3] = {0}; /* Null terminated so we can use strtol */
-	char ch;
+	signed char ch;
 	int cnt = 0;
 
 	*length = 0;
@@ -151,7 +151,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 {
 	FILE *input;
 	int err = 0;
-	char ch;
+	signed char ch;
 
 	struct option long_options[] = {
 		{ "version",    no_argument, NULL,            'V' },
