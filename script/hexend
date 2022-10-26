@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# If $2 is a file it will read the file, otherwise it reads stdin
+
+#cat $2 | xxd -r -p | socat -u STDIN interface:$1
+DATA=$(cat $2)
+
+#for i in $(seq 1 10000); do
+echo "$DATA" | xxd -r -p | socat -u STDIN interface:$1
+#done
