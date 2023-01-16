@@ -28,7 +28,8 @@ struct hexend {
 	bool verbose;
 	int length;
 	int reps;
-	float interval;
+	uint64_t rate;
+	double interval;
 };
 
 
@@ -54,6 +55,9 @@ void usage(void)
 	      "            Display hexend version\n"
 	      "        -q, --quiet \n"
 	      "            Suppress all output\n"
+	      "        -r, --rate \n"
+	      "            Specify rate of transfer in bits. E.g. 15k, 10m, 5g. CPU may limit output rate.\n"
+	      "            Frames will be sent at **average** that rate\n"
 	      "\n"
 	      "EXAMPLES:\n"
 	      "            hexend eth0 bcast\n"
@@ -147,11 +151,38 @@ int parse_arg_iface(int argc, char **argv, struct hexend *hx)
 	return 0;
 }
 
+int parse_rate(struct hexend *hx, char *str)
+{
+	char *end;
+	uint64_t val, bit_length;
+
+	val = strtoll(str, &end, 10);
+	if (errno)
+		return errno;
+
+	if (*end == 'k')
+		hx->rate = val * 1000;
+	if (*end == 'm')
+		hx->rate = val * 1000000;
+	if (*end == 'g')
+		hx->rate = val * 1000000000;
+
+	/* Calculate interval, requires frame to have been parsed */
+	bit_length = hx->length * 8;
+	hx->interval = bit_length / (double)hx->rate;
+
+	printf("Bit length %lu. Rate %lu. Interval %lf\n", bit_length, hx->rate, hx->interval);
+
+	return 0;
+}
+
 int parse_args(int argc, char **argv, struct hexend *hx)
 {
 	FILE *input;
 	int err = 0;
 	signed char ch;
+	char rate[100] = { 0  };
+	bool rate_set = false, interval_set = false;
 
 	struct option long_options[] = {
 		{ "version",    no_argument, NULL,            'V' },
@@ -160,6 +191,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 		{ "count",      no_argument, NULL,            'c' },
 		{ "interval",   no_argument, NULL,            'i' },
 		{ "quiet",      no_argument, NULL,            'q' },
+		{ "rate",       no_argument, NULL,            'r' },
 		{ NULL,         0,           NULL,             0  }
 	};
 
@@ -168,8 +200,9 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 	hx->verbose = false;
 	hx->interval = 1;
 	hx->length = 0;
+	hx->rate = 0;
 
-	while ((ch = getopt_long(argc, argv, "Vhvqc:i:", long_options, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "Vhvqc:i:r:", long_options, NULL)) != -1) {
 		switch (ch) {
 		case 'V':
 			VERSION();
@@ -201,7 +234,20 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 			break;
 		case 'i':
 			 /*Sending interval. Float. */
+			if (rate_set) {
+				ERR("Can't have rate and interval\n");
+				return -EINVAL;
+			}
 			hx->interval = atof(optarg);
+			interval_set = true;
+			break;
+		case 'r':
+			if (interval_set) {
+				ERR("Can't have rate and interval\n");
+				return -EINVAL;
+			}
+			strncpy(rate, optarg, 99);
+			rate_set = true;
 			break;
 		case '?':
 			return -EINVAL;
@@ -226,6 +272,12 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 
 	if (input != stdin)
 		fclose(input);
+
+	if (rate_set) {
+		err = parse_rate(hx, rate);
+		if (err)
+			ERR("Invalid rate. See -h for examples.\n");
+	}
 
 	return 0;
 }
@@ -284,8 +336,12 @@ int send_frame(struct hexend *hx)
 			printf(".");
 			fflush(stdout);
 		}
-		if ((reps > 0 || forever) && hx->interval > 0)
-			usleep(1000000 * hx->interval);
+		if ((reps > 0 || forever) && hx->interval > 0) {
+			if (hx->rate > 0)
+				usleep(hx->interval);
+			else
+				usleep(1000000 * hx->interval);
+		}
 	}
 	if (dots && !hx->quiet)
 		printf("\n");
