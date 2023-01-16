@@ -103,7 +103,7 @@ int parse_hex_file(FILE *input, uint8_t *buffer, int *length, bool quiet)
 			ERR("Invalid character '%c' (ascii: %d) in input\n", ch, ch);
 			return -EINVAL;
 		}
-		
+
 		byte[cnt] = ch;
 		cnt++;
 
@@ -163,7 +163,7 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 		{ NULL,         0,           NULL,             0  }
 	};
 
-	hx->reps = 1;
+	hx->reps = -1;
 	hx->quiet = false;
 	hx->verbose = false;
 	hx->interval = 1;
@@ -194,6 +194,10 @@ int parse_args(int argc, char **argv, struct hexend *hx)
 		case 'c':
 			// TODO: Replace with strol
 			hx->reps = atoi(optarg);
+			if (hx->reps < 1) {
+				ERR("Can't have negative count\n");
+				return -EINVAL;
+			}
 			break;
 		case 'i':
 			 /*Sending interval. Float. */
@@ -246,7 +250,7 @@ int get_iface_index(char iface[IFNAMSIZ], int sockfd)
 int send_frame(struct hexend *hx)
 {
 	struct sockaddr_ll sock_addr;
-	bool dots = false;
+	bool dots = false, forever = false;
 	int sockfd, reps;
 
 	reps = hx->reps;
@@ -262,23 +266,25 @@ int send_frame(struct hexend *hx)
 	if (sock_addr.sll_ifindex < 0)
 		return EINVAL;
 
-	if (reps > 1)
+	if (reps < 0)
+		forever = true;
+	if (reps > 1 || forever)
 		dots = true;
 
 	if (!hx->quiet)
-		printf("Sending %d bytes\n", hx->length); 
+		printf("Sending %d bytes\n", hx->length);
 	if (hx->verbose)
 		show_buffer(hx->buffer, hx->length);
 
 	/* Send frames */
-	while (reps > 0) {
+	while (reps > 0 || forever) {
 		sendto(sockfd, hx->buffer, hx->length, 0, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_ll));
 		reps--;
 		if (dots && !hx->quiet) {
 			printf(".");
 			fflush(stdout);
 		}
-		if (reps > 0 && hx->interval > 0)
+		if ((reps > 0 || forever) && hx->interval > 0)
 			usleep(1000000 * hx->interval);
 	}
 	if (dots && !hx->quiet)
