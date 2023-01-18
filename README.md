@@ -24,7 +24,7 @@ sudo make install
 ```
 
 # Examples
-Send a frame from file to `eth0`
+Send a frame from file to `eth0`. Repeats until stopped.
 ```
 hexend eth0 my_frames/frame.hex
 ```
