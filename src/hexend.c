@@ -78,7 +78,7 @@ void show_buffer(uint8_t buffer[ETH_FRAME_LEN], int length)
 
 		if (i % 16 == 0)
 			printf("\n");
-		else
+		else if (i != length)
 			printf(" ");
 
 	}
