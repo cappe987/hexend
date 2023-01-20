@@ -6,7 +6,6 @@ cmake_minimum_required(VERSION 3.12)
 project(hexend VERSION 1.0)
 
 # ==== PROJECT SETUP ====
-set(HEXEND_FRAME_DIR "/var/lib/hexend")
 set(CMAKE_C_FLAGS
 	"${CMAKE_C_FLAGS} -Wall -Wpedantic -Wextra -Wno-gnu-zero-variadic-macro-arguments")
 set(PROJECT_NAME_VERSION "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
@@ -41,10 +40,10 @@ add_custom_target(uninstall
 
 # ==== RELEASE TAR FILE ====
 add_custom_target(dist
-	COMMAND 
+	COMMAND
 	mkdir "-p" "${PROJECT_NAME_VERSION}"
 	COMMAND
-	cp 
+	cp
 	"-r"
 	"../CMakeLists.txt"
 	"../LICENSE"
@@ -53,9 +52,9 @@ add_custom_target(dist
 	"../include"
 	"../src"
 	"${PROJECT_NAME_VERSION}"
-	COMMAND 
-	tar 
-	"-cvzf" 
+	COMMAND
+	tar
+	"-cvzf"
 	"${PROJECT_NAME_VERSION}.tar.gz"
 	"${PROJECT_NAME_VERSION}/"
 	)
