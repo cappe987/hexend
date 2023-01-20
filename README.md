@@ -1,5 +1,5 @@
 <!---
-SPDX-License-Identifier: GPL-2.0-only
+SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
 -->
 
