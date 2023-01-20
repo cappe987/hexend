@@ -236,8 +236,7 @@ int get_iface_index(char iface[IFNAMSIZ], int sockfd)
 	struct ifreq if_idx;
 
 	memset(&if_idx, 0, sizeof(struct ifreq));
-#pragma GCC diagnostic ignored "-Wstringop-truncation"
-	strncpy(if_idx.ifr_name, iface, IFNAMSIZ);
+	memcpy(if_idx.ifr_name, iface, IFNAMSIZ);
 
 	if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
 		ERR("No such device: %s\n", iface);
