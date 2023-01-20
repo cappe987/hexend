@@ -44,5 +44,18 @@ Pipe raw string to input, repeat 1000 times with no interval
 echo ffffffffffffaaaaaaaaaaaa0000 | hexend eth0 -c 1000 -i 0
 ```
 
+# Test
+The test script depends on `tshark` and requires you to have access to running
+it. If you have Wireshark and is part of the "wireshark" group it should work.
+To run the full test suite do
+```
+make test
+```
+
+To select an individual test you can do
+```
+make test t=zero_interval
+```
+
 # Hexend shell script
 After creating this project I found a way to do this with shell scripts, which is what I initially would have wanted. But the performance of the shell script (found in `script/hexend`) is much worse if you want to send a lot of packets. On the upside, it doesn't require escalated privileges. The script is very basic right now and depends on `xxd` and `socat`. It is used the same, either by piping to `stdin`, or by providing a filename. It currently does not support any of the argument flags.

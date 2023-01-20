@@ -38,6 +38,14 @@ add_custom_target(uninstall
 	xargs rm < install_manifest.txt
 	)
 
+
+# ==== TEST ====
+add_custom_target(test
+	COMMAND
+	unshare -r -n ${PROJECT_SOURCE_DIR}/test/test.sh ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR}/hexend $(t)
+	DEPENDS ${PROJECT_BINARY_DIR}/hexend
+	)
+
 # ==== RELEASE TAR FILE ====
 add_custom_target(dist
 	COMMAND
