@@ -3,11 +3,9 @@
 # tshark depends on the current user being in the 'wireshark' group, or getting
 # the permissions in other ways.
 
-rootdir=$1
-frames=$rootdir/examples
-hexend=$2
-if [ "$#" -ge 3 ]; then
-	test=$3
+hexend=$1
+if [ "$#" -ge 2 ]; then
+	test=$2
 else
 	test=""
 fi
@@ -27,6 +25,7 @@ show() {
 }
 
 basic_count() {
+	frame="ffffffffffffaaaaaaaaaaaa0000"
 	src="aa:aa:aa:aa:aa:aa"
 	dst="ff:ff:ff:ff:ff:ff"
 	num_pkt=5
@@ -37,7 +36,7 @@ basic_count() {
 	PID=$!
 	sleep 1
 
-	$hexend $in $frames/bcast.hex -c $num_pkt -i 0 -q
+	echo "$frame" | $hexend $in -c $num_pkt -i 0 -q
 	sleep 2
 	kill $PID 2>/dev/null
 	NUM=$(cat $tmp | grep "$src → $dst" | wc -l)

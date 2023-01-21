@@ -42,7 +42,7 @@ add_custom_target(uninstall
 # ==== TEST ====
 add_custom_target(test
 	COMMAND
-	unshare -r -n ${PROJECT_SOURCE_DIR}/test/test.sh ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR}/hexend $(t)
+	unshare -r -n ${PROJECT_SOURCE_DIR}/test/test.sh ${PROJECT_BINARY_DIR}/hexend $(t)
 	DEPENDS ${PROJECT_BINARY_DIR}/hexend
 	)
 
