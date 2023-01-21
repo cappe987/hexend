@@ -23,6 +23,14 @@ jobs:
         run: |
           cd build
           make
+      - name: Install test dependencies
+        run: |
+          sudo apt install tshark
+          sudo apt install tcpdump
+      - name: Test
+        run: |
+          cd build
+          make test
   build-aarch64:
     name: Build aarch64
     runs-on: ubuntu-latest
