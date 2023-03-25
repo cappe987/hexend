@@ -1,6 +1,6 @@
 <!---
 SPDX-License-Identifier: MIT
-SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
+SPDX-FileCopyrightText: 2023 Casper Andersson <casper.casan@gmail.com>
 -->
 
 # Hexend - Send raw hex frames

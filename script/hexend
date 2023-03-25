@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# SPDX-FileCopyrightText: 2022 Casper Andersson <casper.casan@gmail.com>
+# SPDX-FileCopyrightText: 2023 Casper Andersson <casper.casan@gmail.com>
 
 # If $2 is a file it will read the file, otherwise it reads stdin
 
