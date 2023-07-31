@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2023 Casper Andersson <casper.casan@gmail.com>
 #!/bin/bash
 
 # tshark depends on the current user being in the 'wireshark' group, or getting
