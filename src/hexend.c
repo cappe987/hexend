@@ -263,8 +263,10 @@ int send_frame(struct hexend *hx)
 	}
 
 	sock_addr.sll_ifindex = get_iface_index(hx->iface, sockfd);
-	if (sock_addr.sll_ifindex < 0)
+	if (sock_addr.sll_ifindex < 0) {
+		close(sockfd);
 		return EINVAL;
+	}
 
 	if (reps < 0)
 		forever = true;
