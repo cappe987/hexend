@@ -12,14 +12,21 @@ else
 	test=""
 fi
 
-in=veth1
-out=veth2
+in=hexend_veth1
+out=hexend_veth2
 curr_test="none"
 failed=0
 
-ip link add dev $in type veth peer name $out
-ip link set dev $in up
-ip link set dev $out up
+setup() {
+	ip link add dev $in type veth peer name $out
+	ip link set dev $in up
+	ip link set dev $out up
+}
+
+teardown() {
+	# Deleting one veth deletes both
+	ip link del dev $in
+}
 
 
 show() {
@@ -125,6 +132,8 @@ zero_interval() {
 
 tests="basic_count basic_interval basic_verbose zero_interval"
 
+setup
+
 if [ "$test" = "" ]; then
 	echo "[TEST] Running tests"
 	for t in $tests; do
@@ -149,5 +158,7 @@ else
 	echo "Test does not exist..."
 	exit 1
 fi
+
+teardown
 
 exit $failed
