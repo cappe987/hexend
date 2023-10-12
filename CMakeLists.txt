@@ -30,6 +30,8 @@ install(TARGETS hexend
 install(TARGETS hexend
         CONFIGURATIONS Release
         RUNTIME DESTINATION bin)
+install(FILES src/hexend.1
+        DESTINATION share/man/man1)
 
 
 # ==== UNINSTALL ====
