@@ -12,8 +12,8 @@ else
 	test=""
 fi
 
-in=hexend_veth1
-out=hexend_veth2
+in=veth1
+out=veth2
 curr_test="none"
 failed=0
 
@@ -21,6 +21,8 @@ setup() {
 	ip link add dev $in type veth peer name $out
 	ip link set dev $in up
 	ip link set dev $out up
+	# Allow interfaces to come up
+	sleep 3
 }
 
 teardown() {
